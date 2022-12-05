@@ -1,5 +1,3 @@
-itemtypes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-
 def cleanup(filename):
     with open(filename) as infile:
         filedata = infile.readlines()
