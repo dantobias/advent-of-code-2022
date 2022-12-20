@@ -27,8 +27,10 @@ def process(filename, rocks):
         while len(chamber)<yy+1:
             chamber.append('|.......|')
 
+        #pprint(rocktype)
+        #print('Starting: x', x, xx, 'y:', y, yy)
+
         while not stopped:
-            #print('Start', x, xx, y, yy)
             direction = pattern[turn % len(pattern)]
             if direction == '>':
                 nomove = False
@@ -39,6 +41,7 @@ def process(filename, rocks):
                 if not nomove:
                     x += 1
                     xx += 1
+                    #print('Moving Right: x', x, xx, 'y:', y, yy)
             elif direction == '<':
                 nomove = False
                 for i in range(len(rocktype)):
@@ -48,8 +51,7 @@ def process(filename, rocks):
                 if not nomove:
                     x -= 1
                     xx -= 1
-
-            #print('Moved', x, xx, y, yy)
+                    #print('Moving Left: x', x, xx, 'y:', y, yy)
 
             for i in range(len(rocktype)):
                 for j in range(len(rocktype[i])):
@@ -58,27 +60,29 @@ def process(filename, rocks):
             if not stopped:
                 y -= 1
                 yy -= 1
-                #print('Falling', x, xx, y, yy)
+                #print('Falling: x', x, xx, 'y:', y, yy)
             else:
                 if yy > toprock:
                     toprock = yy
 
-                #print('Chamber Pre:')
-                #pprint(chamber)
-                #print('Top Rock', toprock)
                 for i in range(len(rocktype)):
-                    chamber[yy-i] = chamber[yy-i][0:x] + rocktype[i] + chamber[yy-i][xx+1:]
-                #print('Chamber Post:')
+                        newstring = chamber[yy-i][0:x]
+                        for j in range(len(rocktype[i])):
+                            if rocktype[i][j] == '.':
+                                newstring += chamber[yy-i][x+j]
+                            else:
+                                newstring += rocktype[i][j]
+                        newstring += chamber[yy-i][xx+1:]
+                        chamber[yy-i] = newstring
+
                 #pprint(chamber)
-                #print('End')
 
             turn += 1
- 
-    #pprint(chamber)
 
     result = toprock
     return result
 
 result = process('d17-p1-data.txt', 2022)
 #result = process('d17-p1-testdata.txt', 2022)
+
 print(result)
