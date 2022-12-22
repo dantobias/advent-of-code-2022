@@ -1,46 +1,37 @@
 def process(filename):
 
-    def mark_cell(x, y, z)
-        nonlocal clear
-        if clear[x][y][z] == None:
+    def cell_check(x, y, z):
+        if x<0 or x>maxnum+1 or y<0 or y>maxnum+1 or z<0 or z>maxnum+1:
+            return False
+        elif clear[x][y][z] == None:
             if space[x][y][z]:
-                clear[x][y][z] = False
-                #print(x,y,z,'Occupied: not clear')
-            elif x<=1 or x>=maxnum-1 or y<=1 or y>=maxnum-1 or z<=1 or z>=maxnum-1:
-                clear[x][y][z] = True
-                #print(x,y,z,'At edge: clear')
-            elif clear[x-1][y][z] or clear[x][y-1][z] or clear[x][y][z-1] or clear[x+1][y][z] or clear[x][y+1][z] or clear[x][y][z+1]:
-                clear[x][y][z] = True
-                #print(x,y,z,'Has clear neighbors: clear')
-            elif clear[x-1][y][z] != None and clear[x][y-1][z] != None and clear[x][y][z-1] != None and clear[x+1][y][z] != None and clear[x][y+1][z] != None and clear[x][y][z+1]!= None:
-                clear[x][y][z] = False
-                #print(x,y,z,'Not clear')
-            #else:
-                #print(x,y,z,'Undecided')
+                return False
+            else:
+                return True
+        else:
+            return False
 
             #print(x, y, z, clear[x][y][z])
 
-    def set_clear_status(x, y, z):
-            searchlist = [(x, y, z)]
-            while (searchlist):
-                c = searchlist.pop()
-                beenthere[c] = True
-                mark_cell(c[0], c[1], c[2])
-                if clear[c[0]][c[1]][c[2]] == None:
-                    if clear[c[0]-1][c[1]][z] == None:
-                        if not (c[0]-1, c[1], c[2]) in beenthere):
-                            searchlist.append((c[0]-1, c[1], c[2]))
-                    if clear[c[0]][c[1]-1][z] == None:
-                        searchlist.append((c[0], c[1]-1, c[2]))
-                    if clear[c[0]][c[1]][z-1] == None:
-                        searchlist.append((c[0], c[1], c[2]-1))
-                    if clear[c[0]+1][c[1]][z] == None:
-                        searchlist.append((c[0]+1, c[1], c[2]))
-                    if clear[c[0]][c[1]-1][z] == None:
-                        searchlist.append((c[0], c[1]+1, c[2]))
-                    if clear[c[0]][c[1]][z-1] == None:
-                        searchlist.append((c[0], c[1], c[2]+1))
-            
+    def set_clear_status():
+        nonlocal clear
+        searchlist = [(0, 0, 0)]
+        while (searchlist):
+            c = searchlist.pop()
+            if c[0] >= 0 and c[1] >= 0 and c[2] >= 0:
+                clear[c[0]][c[1]][c[2]] = True
+            if cell_check(c[0]-1, c[1], c[2]):
+                searchlist.append((c[0]-1, c[1], c[2]))
+            if cell_check(c[0], c[1]-1, c[2]):
+                searchlist.append((c[0], c[1]-1, c[2]))
+            if cell_check(c[0], c[1], c[2]-1):
+                searchlist.append((c[0], c[1], c[2]-1))
+            if cell_check(c[0]+1, c[1], c[2]):
+                searchlist.append((c[0]+1, c[1], c[2]))
+            if cell_check(c[0], c[1]+1, c[2]):
+                searchlist.append((c[0], c[1]+1, c[2]))
+            if cell_check(c[0], c[1], c[2]+1):
+                searchlist.append((c[0], c[1], c[2]+1))
 
     with open(filename) as infile:
         filedata = infile.readlines()
@@ -50,7 +41,7 @@ def process(filename):
 
         for line in filedata:
             line = line.rstrip()
-            coords = [int(i) for i in line.split(',')]
+            coords = [int(i)+1 for i in line.split(',')]
             if coords[0] > maxnum:
                 maxnum = coords[0]
             if coords[1] > maxnum:
@@ -65,28 +56,18 @@ def process(filename):
         for c in cubes:
             space[c[0]][c[1]][c[2]] = True
 
-        result = 0
+        set_clear_status()
 
-        for x in range(0, maxnum+2):
-            for y in range(0, maxnum+2):
-                for z in range(0, maxnum+2):
-                    set_clear_status(x, y, z)
-                    set_clear_status(y, z, x)
-                    set_clear_status(z, x, y)
-                    set_clear_status(x, z, y)
-                    set_clear_status(y, x, z)
-                    set_clear_status(z, y, x)
-                    set_clear_status(maxnum+1-x, maxnum+1-y, maxnum+1-z)
-                    set_clear_status(maxnum+1-y, maxnum+1-z, maxnum+1-x)
-                    set_clear_status(maxnum+1-z, maxnum+1-x, maxnum+1-y)
-                    set_clear_status(maxnum+1-x, maxnum+1-z, maxnum+1-y)
-                    set_clear_status(maxnum+1-y, maxnum+1-x, maxnum+1-z)
-                    set_clear_status(maxnum+1-z, maxnum+1-y, maxnum+1-x)
+        result = 0
+        cubecount = 0
+
+        cubes1 = {}
 
         for x in range(1, len(space)-1):
             for y in range(1, len(space[x])-1):
                 for z in range(1, len(space[x][y])-1):
                     if space[x][y][z]:
+                        cubecount += 1
                         sidecount = 0
                         sidestr = ''
                         if clear[x-1][y][z]:
@@ -109,23 +90,66 @@ def process(filename):
                             sidestr += 'z+'
                         #print('S1', x, y, z, sidecount, sidestr)
                         result += sidecount
+                        cubes1[(x, y, z)] = sidecount
                     #else:
                         #print('S1', x, y, z, space[x][y][z], clear[x][y][z])
 
-#        for x in range(0, maxnum+2):
-#            for y in range(0, maxnum+2):
-#                outstr = ''
-#                for z in range(0, maxnum+2):
-#                    if clear[x][y][z] == None:
-#                        outstr += '%'
-#                    elif space[x][y][z]:
-#                        outstr += '*'
-#                    elif clear[x][y][z]:
-#                        outstr += ' '
-#                    else:
-#                        outstr += '.'
-#                print(outstr)
-#        print()
+        #print(result, cubecount)
+
+        cubes2 = {}
+
+        result = 0
+        cubecount = 0
+        for c in cubes:
+            cubecount += 1
+            sidecount = 0
+            sidestr = ''
+            if clear[c[0]-1][c[1]][c[2]]:
+                sidecount += 1
+                sidestr += 'x-'
+            if clear[c[0]][c[1]-1][c[2]]:
+                sidecount += 1
+                sidestr += 'y-'
+            if clear[c[0]][c[1]][c[2]-1]:
+                sidecount += 1
+                sidestr += 'z-'
+            if clear[c[0]+1][c[1]][c[2]]:
+                sidecount += 1
+                sidestr += 'x+'
+            if clear[c[0]][c[1]+1][c[2]]:
+                sidecount += 1
+                sidestr += 'y+'
+            if clear[c[0]][c[1]][c[2]+1]:
+                sidecount += 1
+                sidestr += 'z+'
+            #print('S2', c[0], c[1], c[2], sidecount, sidestr)
+            result += sidecount
+            cubes2[(c[0], c[1], c[2])] = sidecount
+
+        #print(result, cubecount)
+
+        #for c in cubes1:
+        #    if not c in cubes2:
+        #        print ("Missing from cubes2:", c, cubes1[c])
+
+        #for c in cubes2:
+        #    if not c in cubes1:
+        #        print ("Missing from cubes1:", c, cubes2[c])
+
+        #for x in range(0, maxnum+2):
+        #    for y in range(0, maxnum+2):
+        #        outstr = ''
+        #        for z in range(0, maxnum+2):
+        #            if space[x][y][z]:
+        #                outstr += '*'
+        #            elif clear[x][y][z] == None:
+        #                outstr += '%'
+        #            elif clear[x][y][z]:
+        #                outstr += ' '
+        #            else:
+        #                outstr += '.'
+        #        print(outstr)
+        #print()
 
     #print(space)
     #print(clear)        

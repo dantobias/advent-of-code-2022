@@ -2,6 +2,9 @@ import re
 
 def process(filename, minutes):
 
+    cache = {}
+    highest_geode = -1
+
     def try_robots(minute, ore, clay, obsidian, geode, orerobot, clayrobot, obsidianrobot, geoderobot):
 
         def estimate_count(minute, ore, clay, obsidian, geode, orerobot, clayrobot, obsidianrobot, geoderobot):
@@ -25,6 +28,11 @@ def process(filename, minutes):
                 tempobsidian = newobsidian
                 tempgeode = newgeode
 
+                minutesleft = minutes - newminute
+                endingore = (minutesleft - 1)*neworerobot + newore
+                endingclay = (minutesleft - 3)*newclayrobot + newclay
+                endingobsidian = (minutesleft - 2)*newobsidianrobot + newobsidian
+
                 newore += neworerobot
                 newclay += newclayrobot
                 newobsidian += newobsidianrobot
@@ -35,18 +43,22 @@ def process(filename, minutes):
                     newobsidian -= geoderobotobsidian
                     newore -= geoderobotore
 
-                elif tempclay >= obsidianrobotclay and tempore >= obsidianrobotore and (newobsidianrobot < 1 or newgeoderobot > 0):
+                elif tempclay >= obsidianrobotclay and tempore >= obsidianrobotore and endingobsidian < geoderobotobsidian * (minutesleft-4):
                     newobsidianrobot += 1
                     newclay -= obsidianrobotclay
                     newore -= obsidianrobotore
 
-                elif tempore >= clayrobotore and (newclayrobot < 1 or newobsidianrobot > 0):
+                elif clayrobotore >= orerobotore and tempore >= clayrobotore and endingclay < obsidianrobotclay * (minutesleft-8):
                     newclayrobot += 1
                     newore -= clayrobotore
 
-                elif tempore >= orerobotore and (neworerobot < 2 or newclayrobot > 0):
+                elif tempore >= orerobotore and endingore <= geoderobotore * (minutesleft - 1):
                     neworerobot += 1
                     newore -= orerobotore
+
+                elif orerobotore < clayrobotore and tempore >= clayrobotore and endingclay < obsidianrobotclay * (minutesleft-8):
+                    newclayrobot += 1
+                    newore -= clayrobotore
 
                 #print('  ', newminute, 'Material', newore, newclay, newobsidian, newgeode, 'Robot', neworerobot, newclayrobot, newobsidianrobot, newgeoderobot)
 
@@ -54,11 +66,20 @@ def process(filename, minutes):
 
         #print(blueprintno, minute, "Robots:", orerobot, clayrobot, obsidianrobot, geoderobot, "Supplies:", ore, clay, obsidian, geode)
 
+        if (minute, ore, clay, obsidian, geode, orerobot, clayrobot, obsidianrobot, geoderobot) in cache:
+            #print('Cache!', minute, geode)
+            return cache[(minute, ore, clay, obsidian, geode, orerobot, clayrobot, obsidianrobot, geoderobot)]
+
         statstr = "Minute "+str(minute)+": "+str(orerobot)+" ore robots, "+str(clayrobot)+" clay robots, "+str(obsidianrobot)+" obsidian robots, "+str(geoderobot)+" geode robots\n"
         statstr += "  "+str(ore)+" ore, "+str(clay)+" clay, "+str(obsidian)+" obsidian, "+str(geode)+" geode\n"
 
         if minute>=minutes:
             #print('\n'+statstr)
+            #print('Endpoint', minute, geode)
+            nonlocal highest_geode
+            if geode > highest_geode:
+                highest_geode = geode
+                print('New max:', highest_geode)
             return (geode, statstr)
 
         possibilities = []
@@ -77,79 +98,52 @@ def process(filename, minutes):
 
         possibilities.append((0, 0, 0, 0))
 
-        maxgeode = -1
-        maxp = None
-
-        for p in possibilities:
-            newore = ore + orerobot - orerobotore*p[0] - clayrobotore*p[1] - obsidianrobotore*p[2] - geoderobotore*p[3]
-            newclay = clay + clayrobot - obsidianrobotclay*p[2]
-            newobsidian = obsidian + obsidianrobot - geoderobotobsidian*p[3]
-            newgeode = geode + geoderobot
-            testgeode = estimate_count(minute+1, newore, newclay, newobsidian, newgeode, orerobot+p[0], clayrobot+p[1], obsidianrobot+p[2], geoderobot+p[3])
-            if testgeode > maxgeode:
-                maxgeode = testgeode
-                maxp = [p]
-            elif testgeode == maxgeode:
-                maxp.append(p)
-
         #print(maxp)
 
         output = None
-        maxtest = -1
 
-        for p in maxp:
+        if minute < 99:
+            maxtest = -1
+            for p in possibilities:
+                newore = ore + orerobot - orerobotore*p[0] - clayrobotore*p[1] - obsidianrobotore*p[2] - geoderobotore*p[3]
+                newclay = clay + clayrobot - obsidianrobotclay*p[2]
+                newobsidian = obsidian + obsidianrobot - geoderobotobsidian*p[3]
+                newgeode = geode + geoderobot
+                testoutput = try_robots(minute+1, newore, newclay, newobsidian, newgeode, orerobot+p[0], clayrobot+p[1], obsidianrobot+p[2], geoderobot+p[3])
+                if testoutput[0] > maxtest:
+                    output = testoutput
+                    maxtest = testoutput[0]
+        else:
+            maxgeode = -1
+            maxp = None
+            for p in possibilities:
+                newore = ore + orerobot - orerobotore*p[0] - clayrobotore*p[1] - obsidianrobotore*p[2] - geoderobotore*p[3]
+                newclay = clay + clayrobot - obsidianrobotclay*p[2]
+                newobsidian = obsidian + obsidianrobot - geoderobotobsidian*p[3]
+                newgeode = geode + geoderobot
+                testgeode = estimate_count(minute+1, newore, newclay, newobsidian, newgeode, orerobot+p[0], clayrobot+p[1], obsidianrobot+p[2], geoderobot+p[3])
+                if testgeode > maxgeode:
+                    maxgeode = testgeode
+                    maxp = p
+
+            p = maxp
             newore = ore + orerobot - orerobotore*p[0] - clayrobotore*p[1] - obsidianrobotore*p[2] - geoderobotore*p[3]
             newclay = clay + clayrobot - obsidianrobotclay*p[2]
             newobsidian = obsidian + obsidianrobot - geoderobotobsidian*p[3]
             newgeode = geode + geoderobot
-            testoutput = try_robots(minute+1, newore, newclay, newobsidian, newgeode, orerobot+p[0], clayrobot+p[1], obsidianrobot+p[2], geoderobot+p[3])
-            if testoutput[0] > maxtest:
-                output = testoutput
-                maxtest = testoutput[0]
-                if minute > 14:
-                    break
+            output = try_robots(minute+1, newore, newclay, newobsidian, newgeode, orerobot+p[0], clayrobot+p[1], obsidianrobot+p[2], geoderobot+p[3])
 
         #if maxgeode >= 11:
         #    print('\n'+statstr+outstatus)
+
+        #cache[(minute, ore, clay, obsidian, geode, orerobot, clayrobot, obsidianrobot, geoderobot)] = (output[0], statstr+output[1])
 
         return (output[0], statstr+output[1])
 
 
     lineexpr = re.compile(r'Blueprint ([0-9]+)\: Each ore robot costs ([0-9]+) ore. Each clay robot costs ([0-9]+) ore\. Each obsidian robot costs ([0-9]+) ore and ([0-9]+) clay\. Each geode robot costs ([0-9]+) ore and ([0-9]+) obsidian\.')
 
-    result = 0
-
-    # Saved data from earlier runs to try partial runs with
-    saveddata = {1: 1, 
-                2: 1,
-                3: 3,
-                4: 0,
-                5: 0,
-                6: 1,
-                7: 0,
-                8: 3,
-                9: 1,
-                10: 1,
-                11: 1,
-                12: 2,
-                13: 5,
-                14: 16,
-                15: 1,
-                16: 4,
-                17: 0,
-                18: 3,
-                19: 3,
-                20: 0,
-                21: 7,
-                22: 7,
-                23: 0,
-                24: 1,
-                25: 3,
-                26: 5,
-                27: 1,
-                28: 0,
-                29: 0,
-                30: 2}
+    result = 1
 
     with open(filename) as infile:
         filedata = infile.readlines()
@@ -173,12 +167,12 @@ def process(filename, minutes):
                 testresult = try_robots(0, 0, 0, 0, 0, 1, 0, 0, 0)
                 print(blueprintno, testresult[0])
 
-                result += blueprintno * testresult[0]
-                #print(testresult[1])
+                result *= testresult[0]
+                print(testresult[1])
                         
     return result
 
-result = process('d19-p1-data.txt', 24)
-#result = process('d19-p1-testdata.txt', 24)
+result = process('d19-p2-data.txt', 32)
+#result = process('d19-p1-testdata.txt', 32)
 
 print(result)
