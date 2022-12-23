@@ -3,11 +3,10 @@ import re
 def process(filename, minutes):
 
     cache = {}
-    highest_geode = -1
 
-    def try_robots(minute, ore, clay, obsidian, geode, orerobot, clayrobot, obsidianrobot, geoderobot):
+    def try_robots(minute, ore, clay, obsidian, geode, orerobot, clayrobot, obsidianrobot, geoderobot, old_robots_available):
 
-        def estimate_count(minute, ore, clay, obsidian, geode, orerobot, clayrobot, obsidianrobot, geoderobot):
+        def estimate_count(minute, ore, clay, obsidian, geode, orerobot, clayrobot, obsidianrobot, geoderobot, old_robots_available):
             newminute = minute
             newore = ore
             newclay = clay
@@ -42,23 +41,28 @@ def process(filename, minutes):
                     newgeoderobot += 1
                     newobsidian -= geoderobotobsidian
                     newore -= geoderobotore
+                    old_robots_available = {}
 
-                elif tempclay >= obsidianrobotclay and tempore >= obsidianrobotore and endingobsidian < geoderobotobsidian * (minutesleft-4):
+                elif tempclay >= obsidianrobotclay and tempore >= obsidianrobotore and endingobsidian < geoderobotobsidian * (minutesleft-4) and not 'obsidian' in old_robots_available:
                     newobsidianrobot += 1
                     newclay -= obsidianrobotclay
                     newore -= obsidianrobotore
+                    old_robots_available = {}
 
-                elif clayrobotore >= orerobotore and tempore >= clayrobotore and endingclay < obsidianrobotclay * (minutesleft-8):
+                elif clayrobotore >= orerobotore and tempore >= clayrobotore and endingclay < obsidianrobotclay * (minutesleft-8) and not 'clay' in old_robots_available:
                     newclayrobot += 1
                     newore -= clayrobotore
+                    old_robots_available = {}
 
-                elif tempore >= orerobotore and endingore <= geoderobotore * (minutesleft - 1):
+                elif tempore >= orerobotore and endingore <= geoderobotore * (minutesleft - 1) and not 'ore' in old_robots_available:
                     neworerobot += 1
                     newore -= orerobotore
+                    old_robots_available = {}
 
-                elif orerobotore < clayrobotore and tempore >= clayrobotore and endingclay < obsidianrobotclay * (minutesleft-8):
+                elif orerobotore < clayrobotore and tempore >= clayrobotore and endingclay < obsidianrobotclay * (minutesleft-8) and not 'clay' in old_robots_available:
                     newclayrobot += 1
                     newore -= clayrobotore
+                    old_robots_available = {}
 
                 #print('  ', newminute, 'Material', newore, newclay, newobsidian, newgeode, 'Robot', neworerobot, newclayrobot, newobsidianrobot, newgeoderobot)
 
@@ -83,33 +87,39 @@ def process(filename, minutes):
             return (geode, statstr)
 
         possibilities = []
+        robots_available = {}
 
         if obsidian >= geoderobotobsidian and ore >= geoderobotore:
-            possibilities.append((0, 0, 0, 1))
+            possibilities.append((0, 0, 0, 1, {}))
+            robots_available['geode'] = 1
 
-        if clay >= obsidianrobotclay and ore >= obsidianrobotore:
-            possibilities.append((0, 0, 1, 0))
+        if clay >= obsidianrobotclay and ore >= obsidianrobotore and not 'geode' in robots_available and not 'obsidian' in old_robots_available:
+            possibilities.append((0, 0, 1, 0, {}))
+            robots_available['obsidian'] = 1
 
-        if ore >= clayrobotore:
-            possibilities.append((0, 1, 0, 0))
+        if ore >= clayrobotore and not 'geode' in robots_available and not 'clay' in old_robots_available:
+            possibilities.append((0, 1, 0, 0, {}))
+            robots_available['clay'] = 1
 
-        if ore >= orerobotore:
-            possibilities.append((1, 0, 0, 0))
+        if ore >= orerobotore and not 'geode' in robots_available and not 'ore' in old_robots_available:
+            possibilities.append((1, 0, 0, 0, {}))
+            robots_available['ore'] = 1
 
-        possibilities.append((0, 0, 0, 0))
+        if not 'geode' in robots_available:
+            possibilities.append((0, 0, 0, 0, robots_available))
 
         #print(maxp)
 
         output = None
 
-        if minute < 99:
+        if True: # minute < 19 or minute > 25:
             maxtest = -1
             for p in possibilities:
                 newore = ore + orerobot - orerobotore*p[0] - clayrobotore*p[1] - obsidianrobotore*p[2] - geoderobotore*p[3]
                 newclay = clay + clayrobot - obsidianrobotclay*p[2]
                 newobsidian = obsidian + obsidianrobot - geoderobotobsidian*p[3]
                 newgeode = geode + geoderobot
-                testoutput = try_robots(minute+1, newore, newclay, newobsidian, newgeode, orerobot+p[0], clayrobot+p[1], obsidianrobot+p[2], geoderobot+p[3])
+                testoutput = try_robots(minute+1, newore, newclay, newobsidian, newgeode, orerobot+p[0], clayrobot+p[1], obsidianrobot+p[2], geoderobot+p[3], p[4])
                 if testoutput[0] > maxtest:
                     output = testoutput
                     maxtest = testoutput[0]
@@ -121,7 +131,7 @@ def process(filename, minutes):
                 newclay = clay + clayrobot - obsidianrobotclay*p[2]
                 newobsidian = obsidian + obsidianrobot - geoderobotobsidian*p[3]
                 newgeode = geode + geoderobot
-                testgeode = estimate_count(minute+1, newore, newclay, newobsidian, newgeode, orerobot+p[0], clayrobot+p[1], obsidianrobot+p[2], geoderobot+p[3])
+                testgeode = estimate_count(minute+1, newore, newclay, newobsidian, newgeode, orerobot+p[0], clayrobot+p[1], obsidianrobot+p[2], geoderobot+p[3], p[4])
                 if testgeode > maxgeode:
                     maxgeode = testgeode
                     maxp = p
@@ -131,7 +141,7 @@ def process(filename, minutes):
             newclay = clay + clayrobot - obsidianrobotclay*p[2]
             newobsidian = obsidian + obsidianrobot - geoderobotobsidian*p[3]
             newgeode = geode + geoderobot
-            output = try_robots(minute+1, newore, newclay, newobsidian, newgeode, orerobot+p[0], clayrobot+p[1], obsidianrobot+p[2], geoderobot+p[3])
+            output = try_robots(minute+1, newore, newclay, newobsidian, newgeode, orerobot+p[0], clayrobot+p[1], obsidianrobot+p[2], geoderobot+p[3], p[4])
 
         #if maxgeode >= 11:
         #    print('\n'+statstr+outstatus)
@@ -164,7 +174,8 @@ def process(filename, minutes):
                 #    testresult = (saveddata[blueprintno], 'From Saved Data')
                 #else:
 
-                testresult = try_robots(0, 0, 0, 0, 0, 1, 0, 0, 0)
+                highest_geode = -1
+                testresult = try_robots(0, 0, 0, 0, 0, 1, 0, 0, 0, {})
                 print(blueprintno, testresult[0])
 
                 result *= testresult[0]
