@@ -112,7 +112,7 @@ def process(filename, minutes):
 
         output = None
 
-        if minute < 19 or minute > 25:
+        if minute < 17 or minute > 25:
             maxtest = -1
             for p in possibilities:
                 newore = ore + orerobot - orerobotore*p[0] - clayrobotore*p[1] - obsidianrobotore*p[2] - geoderobotore*p[3]
@@ -183,7 +183,7 @@ def process(filename, minutes):
                         
     return result
 
-#result = process('d19-p2-data.txt', 32)
-result = process('d19-p1-testdata.txt', 32)
+result = process('d19-p2-data.txt', 32)
+#result = process('d19-p1-testdata.txt', 32)
 
 print(result)
