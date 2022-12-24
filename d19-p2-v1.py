@@ -183,7 +183,7 @@ def process(filename, minutes):
                         
     return result
 
-#result = process('d19-p2-data.txt', 32)
-result = process('d19-p1-testdata.txt', 32)
+result = process('d19-p2-data.txt', 32)
+#result = process('d19-p1-testdata.txt', 32)
 
 print(result)
